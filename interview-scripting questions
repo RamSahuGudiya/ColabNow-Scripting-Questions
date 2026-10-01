@@ -1,0 +1,363 @@
+ServiceNow Background Scripting — Practice Questions 
+LOW LEVEL — 10 Questions 
+
+1. Fetch all incidents 
+Write a Background Script to fetch all Incident records and print their Incident 
+numbers. 
+
+2. Fetch active incidents 
+Fetch all active incidents and print: 
+•Incident number  
+•Short description
+
+3. Fetch Priority 1 incidents 
+Find all incidents where Priority = 1 - Critical and print their incident numbers. 
+
+4. Fetch Hardware incidents 
+Find all incidents where Category = Hardware and print: 
+•Incident number  
+•Short description  
+
+5. Fetch incidents assigned to Abel Tuter 
+Find all incidents assigned to Abel Tuter and print: 
+•Incident number  
+•Short description  
+
+6. Fetch incidents for a specific caller 
+Find all incidents raised by Demo User and print the incident numbers. 
+
+7. Fetch unassigned incidents 
+Find all incidents where Assignment Group is empty and print their incident 
+numbers. 
+
+8. Fetch incidents with no assigned user 
+Find all incidents where Assigned To is empty and print their incident numbers. 
+
+9. Fetch one incident 
+Using a specific Incident sys_id, retrieve that incident and print: 
+•Number  
+ 
+•Short description  
+•Priority  
+10. Fetch latest incident 
+Find the latest created incident and print: 
+•Number  
+•Short description  
+•Created date  
+ 
+MEDIUM LEVEL — 10 Questions 
+11. Active Priority 1 incidents 
+Find incidents where: 
+•Active = true  
+•Priority = 1  
+Print: 
+•Number  
+•Short description  
+•Assignment group  
+
+12. Hardware incidents assigned to a group 
+Find all Hardware incidents assigned to a specific assignment group. 
+Print: 
+•Number  
+•Short description  
+•Assigned group  
+
+13. Incidents assigned to a particular user 
+Find all incidents assigned to Abel Tuter. 
+Print: 
+•Number  
+•Priority  
+•State  
+ 
+22. Highest incident count group 
+Find the assignment group that has the highest number of incidents. 
+Display: 
+Assignment Group 
+Incident Count 
+ 
+23. Active incidents by assignment group 
+Using GlideAggregate, find the number of active incidents for each assignment 
+group. 
+Display only groups having at least 3 active incidents. 
+ 
+24. Incidents open for more than 5 days 
+Find all incidents that have been open for more than 5 days. 
+Print: 
+•Incident number  
+•Created date  
+•State  
+•Short description  
+
+25. Incidents created in the last 7 days 
+Find incidents created within the last 7 days. 
+Print: 
+•Number  
+•Created date  
+•Caller  
+•Short description  
+
+26. Caller and Assigned To comparison 
+Find incidents where the caller and assigned user are different people. 
+Print: 
+Incident 
+Caller 
+Assigned To 
+ 
+27. Group populated but Assigned To empty 
+Find incidents where: 
+•Assignment Group is populated  
+•Assigned To is empty  
+•Active = true  
+Print the incident number and assignment group. 
+
+28. Priority 1 but no assignment 
+Find active Priority 1 incidents where either: 
+•Assignment Group is empty, or  
+•Assigned To is empty.  
+Print: 
+Incident 
+Priority 
+Assignment Group 
+Assigned To 
+
+29. Latest incident for each assignment group 
+Using GlideAggregate, identify the assignment groups and their incident counts, then 
+determine the latest-created incident for each group. 
+Print: 
+Assignment Group 
+Latest Incident 
+Created Date 
+
+                                                                     Scripting Interview Questions
+
+Copy attachment from one table to another table
+	(function executeRule(current, previous /*null when async*/ ) {
+    // Add your code here
+    var gr = new GlideRecord("problem");
+    gr.addQuery('parent', current.getUniqueValue());
+    gr.query();
+
+
+    if (gr.next()) {
+        GlideSysAttachment.copy("incident", current.getUniqueValue(), 'problem', gr.getUniqueValue());
+    }
+})(current, previous);
+
+When you update the work note on the incident, then the worknote on the problem should also get updated
+Business Rules
+(function executeRule(current, previous /*null when async*/ ) {
+    // Add your code here
+    var worknote = current.work_notes.getJournalEntry(1);
+    updateWorkNotes(current.problem_id, worknote);
+})(current, previous);
+Script Include
+function updateWorkNotes(problemId, worknotes) {
+    var gr = new GlideRecord('problem');
+    gr.addQuery('sys_id', problemId);
+    gr.query();
+
+
+    if (gr.next()) {
+        gr.work_notes = worknotes;
+        gr.update();
+    }
+}
+
+
+
+
+
+
+Get users who logged in during the last 90 days
+
+var gr = new GlideRecord('sys_user');
+var days = new GlideDateTime(); // which will get the current day and time
+days.addDaysUTC(-90);
+gr.addQuery('last_login_time', ">=", days);
+gr.query();
+while(gr.next()){
+    gs.info(gr.name + " loggedin at: " + gr.last_login_time)
+}
+
+
+
+
+Write a ServiceNow server-side script to:
+Retrieve all incident categories from the incident table.
+
+
+For each category, print all the incident numbers that belong to that category.
+
+
+Within the same category, group the incidents by assignment group.
+
+
+For each assignment group, print the assignment group name and the incident numbers assigned to that group.
+
+
+
+
+
+
+
+var ga = new GlideAggregate('incident');
+ga.addNotNullQuery('category');
+ga.groupBy('category');
+ga.query();
+
+
+while (ga.next()) {
+    var category = ga.getValue('category');
+    gs.info("Category: " + category);
+
+
+    // Incidents under this category
+    var gr = new GlideRecord('incident');
+    gr.addQuery('category', category);
+    gr.query();
+
+
+    while (gr.next()) {
+        gs.info("   Incident: " + gr.number);
+    }
+
+
+    // Assignment groups under this category
+    var ga2 = new GlideAggregate('incident');
+    ga2.addQuery('category', category);
+    ga2.groupBy('assignment_group');
+    ga2.query();
+
+
+    while (ga2.next()) {
+
+
+        var group = ga2.getDisplayValue('assignment_group');
+        gs.info("   Assignment Group: " + group);
+
+
+        // Incidents under this assignment group
+        var gr2 = new GlideRecord('incident');
+        gr2.addQuery('category', category);
+        gr2.addQuery('assignment_group', ga2.assignment_group);
+        gr2.query();
+
+
+        while (gr2.next()) {
+            gs.info("      Incident: " + gr2.number);
+        }
+    }
+}
+
+
+If the priority is changed to critical-1 on the problem, then create an associated incident, and the caller should be the current logged-in user
+.
+(function executeRule(current, previous /*null when async*/ ) {
+    // Add your code here
+    var inc = new GlideRecord('incident');
+   
+    inc.initialize();
+    inc.problem_id = current.sys_id;
+    inc.caller_id = gs.getUserID();
+    inc.short_description = "This is tested to create a inc for problem";
+    inc.insert();
+    gs.addInfoMessage('This is tested for inc to problem' + gs.getUserID());
+
+
+})(current, previous);
+
+
+I want a download button on each and every table in ServiceNow; if I click on it, then the record should download as XML.
+
+
+function downloadRecord() {
+    var recordSysId = g_form.getUniqueValue();
+    var tableName = g_form.getTableName();
+    var url = '/' + tableName + '.do?XML=&sys_id=' + recordSysId;
+   
+    var link = document.createElement('a');
+    link.href = url;
+    link.download = tableName + '_' + recordSysId + '.xml';
+    link.click();
+}
+
+
+Try to do this scenario using ASYNC business rule.
+An incident whose caller is VIP with P1 priority is resolved; create a problem.
+(function executeRule(current, previous /*null when async*/ ) {
+
+
+    gs.info("Async Business Rule is working for incident: " + current.number + "VIP Caller" + current.caller_id.vip);
+
+
+    if (current.priority == "1" && current.caller_id.vip) {
+        gs.info("Successfully created a problem and async has run as expected.");
+        var prb = new GlideRecord('problem');
+        prb.initialize();
+        prb.short_description = current.short_description;
+        prb.description = current.description;
+        var created_problem = prb.insert()
+        current.setValue('problem_id', created_problem);
+
+
+        current.update();
+    }
+})(current, previous);
+Dynamically change the reference field in the incident (ex: caller_id) and display the users who belong to the current logged-in user's department.
+
+
+var deptDynamic = Class.create();
+deptDynamic.prototype = {
+    initialize: function() {},
+
+
+    dname: function() {
+        var gr = new GlideRecord("sys_user");
+        gr.addQuery('sys_id', gs.getUserID());
+        gr.query();
+
+
+        if (gr.next()) {
+            return "department=" + gr.getValue("department");
+        }
+    },
+    type: 'deptDynamic'
+};
+
+
+Display the records in reference field order by the names
+encode_utf8=false,ref_contributions=user_show_incidents,ref_ac_order_by=last_name,ref_qual_elements=last_name
+
+
+
+
+Assign tickets to the least assigned user.
+var userTicketCount = {};
+    var leastAssignedUser = null;
+    var leastCount = 99999;
+
+
+    var inc = new GlideRecord('incident');
+    inc.query();
+    while(inc.next()){
+        var assignedTo = inc.assigned_to.toString();
+        if(assignedTo){
+            if(!userTicketCount[assignedTo]){
+                userTicketCount[assignedTo] = 0;
+            }
+            userTicketCount[assignedTo]++;
+        }
+    }
+    //finding user with least ticket count
+    for(var userId in userTicketCount){
+        if(userTicketCount[userId]<leastCount){
+    //redundant
+            leastCount = userTicketCount[userId];
+            leastAssignedUser = userId;
+        }
+    }
+    if( leastAssignedUser){
+        current.assigned_to = leastAssignedUser;
+    }
+
+
